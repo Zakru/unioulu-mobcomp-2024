@@ -1,0 +1,13 @@
+I updated Android studio since I had an old version without Jetpack in the templates
+I created a new empty activity project
+I created a composable function for displaying a message and added Material theming
+Shaped the image using a modifier and added a border
+Set text color from theme, which is based on device preferences
+Styled the text using Material typography and shapes
+I added the sample conversation dataset and a composable function to display it
+The conversation function uses LazyColumn to avoid rendering elements that are out of view
+The content automatically becomes scrollable
+I added mutable state to the messages to enable expanding them
+Added a "clickable" modifier to messages to toggle expansion on tap by mutating the state
+Added animations and background for expanded messages
+Holy this is so much better than the old XML way of creating UI
