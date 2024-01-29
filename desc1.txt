@@ -1,3 +1,4 @@
+https://github.com/Zakru/unioulu-mobcomp-2024
 I updated Android studio since I had an old version without Jetpack in the templates
 I created a new empty activity project
 I created a composable function for displaying a message and added Material theming

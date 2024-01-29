@@ -1,0 +1,12 @@
+https://github.com/Zakru/unioulu-mobcomp-2024
+Added a ParticipantProfile class to represent a conversation participant
+Created two user objects and replaced the sample data message authors with them
+Added an event in the message card composable which is called when the profile image is clicked
+Added a NavController and NavHost to the root of the composable hierarchy
+Refactored composables into their own files
+Created a profile composable to display a user profile
+Made the view backgrounds fill the entire screen (max size)
+Added navigation between the main view and a placeholder profile view
+  OS back button/gesture works by default
+Added a userId parameter to the profile view and a mock database of users to read for the profile view
+Added a quick and dirty back button. Circular navigation is prevented by using `popBackStack` instead of `navigate` and `popUpTo` to go back, as intended.
