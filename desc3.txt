@@ -1,0 +1,16 @@
+https://github.com/Zakru/unioulu-mobcomp-2024
+Added an image selection view when clicking the profile image in "my" profile view
+Abstracted profile images to an interface accepting a resource-based image or an image from a URI
+Handle the image selection by assigning a URI image to the profile image
+Undesired behavior: for now, the image is not updated in the profile view immediately
+
+Instead of using the picked image directly, copy it into internal storage and use that file as the URI
+Added a cleanup method to the ProfileImage interface, by default it does nothing but for URI images it
+  deletes the file
+
+Added a Room database to store user info. For now the code is special-cased to only handle "my" user,
+as the other user's data cannot change.
+(had to update Kotlin and Compose Compiler)
+
+Unfortunately the image still does not update immediately as I cannot figure out how to correctly
+update state after returning from an activity.

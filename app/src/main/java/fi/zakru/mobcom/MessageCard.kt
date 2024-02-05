@@ -24,10 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fi.zakru.mobcom.data.ParticipantProfile
+import fi.zakru.mobcom.data.ResImage
 import fi.zakru.mobcom.ui.theme.MobComTheme
 
 data class Message(val author: ParticipantProfile, val body: String)
@@ -36,7 +36,7 @@ data class Message(val author: ParticipantProfile, val body: String)
 fun MessageCard(msg: Message, onClickProfile: (ParticipantProfile) -> Unit) {
     Row(modifier = Modifier.padding(8.dp)) {
         Image(
-            painter = painterResource(msg.author.profileImage),
+            painter = msg.author.profileImage.toPainter(),
             contentDescription = "Profile picture",
             modifier = Modifier
                 .size(40.dp)
@@ -87,7 +87,7 @@ fun MessageCardPreview() {
         Surface {
             MessageCard(
                 Message(
-                    ParticipantProfile("sakari", "Sakari", R.drawable.z_circle),
+                    ParticipantProfile("sakari", "Sakari", ResImage(R.drawable.z_circle)),
                     "Tämä on Jetpack Compose testi. Tässä alkaa toivottavasti olla tarpeeksi tekstiä"
                 )
             ) {}

@@ -7,8 +7,8 @@ import fi.zakru.mobcom.R
  * SampleData for Jetpack Compose Tutorial
  */
 object SampleData {
-    val user1 = ParticipantProfile("lexi", "Lexi", R.drawable.profile_picture)
-    val user2 = ParticipantProfile("zakru", "Zakru", R.drawable.z_circle)
+    val user1 = ParticipantProfile("lexi", "Lexi", ResImage(R.drawable.profile_picture))
+    val user2 = ParticipantProfile("zakru", "Zakru", ResImage(R.drawable.z_circle), me = true)
 
     // Sample conversation data
     val conversationSample = listOf(
