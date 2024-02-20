@@ -84,4 +84,6 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$room_version")
 
     ksp("androidx.room:room-compiler:$room_version")
+
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.1")
 }

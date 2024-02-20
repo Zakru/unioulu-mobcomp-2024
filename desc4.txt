@@ -1,0 +1,19 @@
+https://github.com/Zakru/unioulu-mobcomp-2024
+Looked into creating notifications
+Followed guide in Android documentation to create notifications
+Registered a notification channel
+Created a convenience method for building notifications
+Tried requesting the POST_NOTIFICATIONS permission, but the prompt is never shown. The permission
+  is not listed in the app's settings. Notifications do not appear to require a permission.
+  This is probably caused by testing on an Android 11 device, which allegedly does not require
+  permission for notifications.
+A test notification is now sent when the app starts, without asking for permission.
+
+Register the main activity as a sensor listener on app resume
+Added a sensor data view which displays up-to-date sensor data
+Needed to figure out how to pass live data to a composable using a dependency extension function
+  Sensor data seems to reuse the same float array for every event, so it must be copied every time
+  to update some equality condition.
+
+Now, to add the background notification, I had to add schedule an alarm on a button press
+Callback schedules AlarmManager in 10 seconds with a pending intent to fire a notification
