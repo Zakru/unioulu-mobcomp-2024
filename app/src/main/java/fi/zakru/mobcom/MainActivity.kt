@@ -14,13 +14,17 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
@@ -37,20 +42,24 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.AlarmManagerCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import fi.zakru.mobcom.data.AppDatabase
+import fi.zakru.mobcom.data.ParticipantProfile
 import fi.zakru.mobcom.data.SampleData
 import fi.zakru.mobcom.data.UriImage
 import fi.zakru.mobcom.data.User
 import fi.zakru.mobcom.ui.theme.MobComTheme
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.Calendar
 import java.util.UUID
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -64,21 +73,36 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     private val accelData = MutableLiveData<FloatArray>()
 
+    private var hasRecordingPermission = false
+    private var recorder: MediaRecorder? = null
+    private var recordingFile: File? = null
+    private var player: MediaPlayer? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "main_db").allowMainThreadQueries().build()
         val userDao = db.userDao()
+        val messageDao = db.messageDao()
 
-        val profileMap = mapOf(
-            Pair("lexi", SampleData.user1),
-            Pair("zakru", SampleData.user2),
-        )
+        // Prepopulate DB
+
+        if (messageDao.getMessages().isEmpty())
+            messageDao.addMessages(SampleData.conversationSample.map { fi.zakru.mobcom.data.Message(it.id, it.author.userId, it.body) })
+
+        // Map DB entities to usable data
 
         val me = SampleData.user2
         val dbMe = userDao.findByUsername(me.userId) ?: User(me.userId, me.name, null)
         me.name = dbMe.name
-        if (dbMe.imageUri != null) me.profileImage = UriImage(Uri.parse(dbMe.imageUri))
+        dbMe.imageUri?.let { imageUri -> me.profileImage = UriImage(Uri.parse(imageUri)) }
+
+        val profileMap = MutableLiveData(mapOf(
+            Pair(SampleData.user1.userId, SampleData.user1),
+            Pair(SampleData.user2.userId, SampleData.user2),
+        ))
+
+        val conversation = MutableLiveData(messageDao.getMessages().map { Message(it.id, profileMap.value!![it.sender]!!, it.message) }.toMutableList())
 
         val profileImagesDir = getDir("profileImages", Context.MODE_PRIVATE)
 
@@ -99,10 +123,21 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 // Assign image
                 val imageUri = Uri.fromFile(newImageFile)
                 me.profileImage = UriImage(imageUri)
+                // Refresh LiveData
+                profileMap.value = profileMap.value
+                conversation.value = conversation.value
 
                 dbMe.imageUri = imageUri.toString()
                 userDao.upsert(dbMe)
             }
+        }
+
+        val recordingsDir = getDir("recordings", Context.MODE_PRIVATE)
+
+        hasRecordingPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+        val requestRecordPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            hasRecordingPermission = granted
         }
 
         setContent {
@@ -110,14 +145,66 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
             NavHost(navController = navController, startDestination = "conversation") {
                 composable("conversation") {
+                    val conversationValue by conversation.observeAsState()
+
                     MobComTheme {
                         Surface(modifier = Modifier.fillMaxSize()) {
                             Column {
                                 Button(onClick = { navController.navigate("sensor") }) {
                                     Text("Sensor data")
                                 }
-                                Conversation(SampleData.conversationSample, onClickProfile = {
+                                Conversation(conversationValue!!, onClickProfile = {
                                     navController.navigate("profile/${it.userId}")
+                                }, onSendMessage = {
+                                    val id = messageDao.insert(fi.zakru.mobcom.data.Message(0, me.userId, it))
+                                    conversation.value!!.add(Message(id, me, it))
+                                    conversation.value = conversation.value
+                                }, tryStartRecording = {
+                                    if (hasRecordingPermission) {
+                                        // The preferred version is unavailable on lower API levels
+                                        @Suppress("DEPRECATION")
+                                        recorder = MediaRecorder().apply {
+                                            setAudioSource(MediaRecorder.AudioSource.MIC)
+                                            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                                            recordingFile = File(recordingsDir, UUID.randomUUID().toString())
+                                            setOutputFile(recordingFile.toString())
+                                            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+
+                                            try {
+                                                prepare()
+                                            } catch (e: IOException) {
+                                                Log.e("recorder", "prepare() failed")
+                                            }
+
+                                            start()
+                                        }
+                                        true
+                                    } else {
+                                        requestRecordPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                        false
+                                    }
+                                }, finishRecording = { cancelled ->
+                                    recorder?.run {
+                                        stop()
+                                        release()
+                                    }
+                                    recorder = null
+
+                                    if (cancelled) {
+                                        recordingFile?.delete()
+                                    } else {
+                                        player?.release()
+                                        player = MediaPlayer().apply {
+                                            setDataSource(recordingFile?.toString())
+                                            setOnCompletionListener {
+                                                release()
+                                                player = null
+                                            }
+                                            prepare()
+                                            start()
+                                            Log.d("recorder", "Playing back $recordingFile")
+                                        }
+                                    }
                                 })
                             }
                         }
@@ -125,8 +212,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 }
 
                 composable("profile/{userId}") {
+                    val profileMapValue by profileMap.observeAsState()
                     val userId = it.arguments?.getString("userId")
-                    var user by remember { mutableStateOf(profileMap[userId]!!, policy = neverEqualPolicy()) }
+                    var user by remember { mutableStateOf(profileMapValue?.get(userId)!!, policy = neverEqualPolicy()) }
 
                     MobComTheme {
                         Surface(modifier = Modifier.fillMaxSize()) {
@@ -142,6 +230,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                                     val newUser = user
                                     newUser.name = newName
                                     user = newUser
+                                    // Refresh LiveData
+                                    profileMap.value = profileMap.value
+                                    conversation.value = conversation.value
+
                                     dbMe.name = newName
                                     userDao.upsert(dbMe)
                                 },

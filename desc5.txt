@@ -1,0 +1,18 @@
+https://github.com/Zakru/unioulu-mobcomp-2024
+
+Let's start off by moving the conversation into the database. To do this, we'll need to create an
+entity and DAO for messages.
+
+The conversation now needs to be populated from the sample data in a new database.
+
+Added a message input field and send button to the bottom of the screen in the conversation view.
+Sending the message saves it to the database and adds it to the end of the conversation.
+
+Added microphone input to the app. There is a recording button which, when initially pressed,
+requests audio recording permission. If granted, pressing the button down starts recording, and
+releasing the button plays the recording back.
+
+To achieve this, I had to create a button that listens for low-level interactions to handle the
+press-release functionality, including built-in "cancel" events (i.e. touch moved out of the
+button). I then created a MediaRecorder to record microphone input and a MediaPlayer to play it
+back.

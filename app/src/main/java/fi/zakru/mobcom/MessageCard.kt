@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,7 +31,7 @@ import fi.zakru.mobcom.data.ParticipantProfile
 import fi.zakru.mobcom.data.ResImage
 import fi.zakru.mobcom.ui.theme.MobComTheme
 
-data class Message(val author: ParticipantProfile, val body: String)
+data class Message(val id: Long, val author: ParticipantProfile, val body: String)
 
 @Composable
 fun MessageCard(msg: Message, onClickProfile: (ParticipantProfile) -> Unit) {
@@ -62,7 +63,7 @@ fun MessageCard(msg: Message, onClickProfile: (ParticipantProfile) -> Unit) {
                 shape = MaterialTheme.shapes.medium,
                 shadowElevation = 1.dp,
                 color = surfaceColor,
-                modifier = Modifier.animateContentSize()
+                modifier = Modifier.animateContentSize().fillMaxWidth()
             ) {
                 Text(
                     text = msg.body,
@@ -87,6 +88,7 @@ fun MessageCardPreview() {
         Surface {
             MessageCard(
                 Message(
+                    1,
                     ParticipantProfile("sakari", "Sakari", ResImage(R.drawable.z_circle)),
                     "Tämä on Jetpack Compose testi. Tässä alkaa toivottavasti olla tarpeeksi tekstiä"
                 )
